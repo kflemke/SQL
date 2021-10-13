@@ -1,0 +1,71 @@
+
+
+#### VIEWS ####
+
+
+[initial_response_view] - documents the earliest appearance of a piece of outbound/inbound mail within the Fall VBM program
+
+[recent_response_view] - tracks the path of a piece of outbound/inbound mail through the USPS system  by documenting the most recent scan 
+
+
+#### COUNTS ####
+
+
+## count of total pieces of sent mail and responses for the entire VBM program mailing
+
+SELECT inbound, COUNT(inbound)
+FROM [initial_response_view]
+GROUP BY inbound;
+
+## count of sent mail within each group 
+
+SELECT SUM(outbound), group_code
+FROM [initial_response_view]
+GROUP BY group_code;
+
+## count of delivered sent mail within each group 
+
+SELECT SUM(outbound), group_code
+FROM [recent_response_view]
+WHERE mail_phase = 'Phase 4c - Delivery'
+GROUP BY group_code;
+
+## count of responses to each group
+
+SELECT SUM(inbound), group_code
+FROM [initial_response_view]
+GROUP BY group_code;
+
+
+#### MAIL PHASE TRACKING ####
+
+
+## mail phase of each piece of sent mail
+
+SELECT SUM(outbound), mail_phase
+FROM [recent_response_view]
+GROUP BY mail_phase;
+
+## mail phase of each mail response
+
+SELECT SUM(inbound), mail_phase
+FROM [recent_response_view]
+GROUP BY mail_phase;
+
+## mail phase of each piece of sent mail by group
+
+SELECT SUM(outbound), group_code, mail_phase
+FROM [recent_response_view]
+GROUP BY group_code , mail_phase
+ORDER BY group_code;
+
+## mail phase of each mail response by group
+
+SELECT SUM(inbound), group_code, mail_phase
+FROM [recent_response_view]
+GROUP BY group_code , mail_phase
+ORDER BY group_code;
+
+
+
+
