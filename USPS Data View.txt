@@ -1,0 +1,210 @@
+CREATE VIEW reporting.[initial_response_view] AS
+(
+    -- USPS RESPONSE DATA --
+    -- read in USPS response data and operation_code definitions 
+    
+    WITH usps AS (
+    SELECT CAST(imb_serial_number AS VARCHAR(10)) AS imb_serial_number
+        , CAST(imb_tracking_code AS VARCHAR(20)) AS imb_tracking_code
+        , CAST(imb_tracking_code AS VARCHAR(2)) AS response_type
+        , CAST(scan_datetime AS TIMESTAMP) AS scan_datetime
+        , CAST(scan_datetime AS DATE) AS scan_date
+        , CAST(scan_event_code AS INTEGER) AS scan_event_code
+        , CAST(scan_facility_state AS VARCHAR(3)) AS scan_facility_state
+    FROM reporting.updated_responses_2021
+    ),
+    
+    codes AS (
+    SELECT CAST(operation_code AS INTEGER) AS operation_code
+        , CAST(mail_phase AS VARCHAR(50)) AS mail_phase
+    FROM reporting.usps_operation_codes
+    ),
+    
+  -- join USPS response data and operation_code definitions - indicates phase of mail process occuring at scan_datetime
+    
+    usps2 AS (
+    SELECT *
+    FROM usps d1
+    LEFT JOIN  codes d2
+    ON d1.scan_event_code = d2.operation_code
+    ),
+    
+    -- de-duplicate response data by most recent appearance of each unique combinations of imb_serial_number & imb_tracking_code 
+    
+    recent_update1 AS (
+    SELECT *
+    FROM (
+      SELECT *, row_number() 
+      OVER (PARTITION BY imb_serial_number, imb_tracking_code order by scan_datetime) as row_number
+      FROM usps2
+      ) 
+    AS rows
+    WHERE row_number = 1),
+    
+    -- PROGRAM DATA - MAILER EXPORT --
+    
+    -- read in x1_id and imb_serial_number from all 3 waves of mailer export for x1 & x2 
+      -- x1_id will be used to join mailer export and randomization data 
+      -- imb_serial_number will be used to join program data and USPS response data
+    
+  
+    fall_exp_x1_1 AS (
+    SELECT CAST(imb_serial AS VARCHAR(10)) AS imb_serial
+        , CAST(unsubid AS VARCHAR(20)) AS unsubid
+        , CAST(creative_code AS VARCHAR(15)) AS creative_code
+        , CAST(first_name AS VARCHAR(50)) AS first_name
+        , CAST(last_name AS VARCHAR(50)) AS last_name
+        , CAST(middle_name AS VARCHAR(50)) AS middle_name
+        , CAST(middle_initial AS VARCHAR(1)) AS middle_initial
+        , CAST(name_suffix AS VARCHAR(15)) AS name_suffix
+        , CAST(voter_reg_address AS VARCHAR(100)) AS voter_reg_address
+        , CAST(mailing_address AS VARCHAR(100)) AS mailing_address
+        , CAST(dest_code AS VARCHAR(30)) AS dest_code
+    FROM mail_production_2022.vbm_2021_fall_mailer_export_x1_wave1
+    ),
+    
+    fall_exp_x1_2 AS (
+    SELECT CAST(imb_serial AS VARCHAR(10)) AS imb_serial
+        , CAST(unsubid AS VARCHAR(20)) AS unsubid
+        , CAST(creative_code AS VARCHAR(15)) AS creative_code
+        , CAST(first_name AS VARCHAR(50)) AS first_name
+        , CAST(last_name AS VARCHAR(50)) AS last_name
+        , CAST(middle_name AS VARCHAR(50)) AS middle_name
+        , CAST(middle_initial AS VARCHAR(1)) AS middle_initial
+        , CAST(name_suffix AS VARCHAR(15)) AS name_suffix
+        , CAST(voter_reg_address AS VARCHAR(100)) AS voter_reg_address
+        , CAST(mailing_address AS VARCHAR(100)) AS mailing_address
+        , CAST(dest_code AS VARCHAR(30)) AS dest_code
+    FROM mail_production_2022.vbm_2021_fall_mailer_export_x1_wave2
+    ),
+    
+    fall_exp_x1_3 AS (
+    SELECT CAST(imb_serial AS VARCHAR(10)) AS imb_serial
+        , CAST(unsubid AS VARCHAR(20)) AS unsubid
+        , CAST(creative_code AS VARCHAR(15)) AS creative_code
+        , CAST(first_name AS VARCHAR(50)) AS first_name
+        , CAST(last_name AS VARCHAR(50)) AS last_name
+        , CAST(middle_name AS VARCHAR(50)) AS middle_name
+        , CAST(middle_initial AS VARCHAR(1)) AS middle_initial
+        , CAST(name_suffix AS VARCHAR(15)) AS name_suffix
+        , CAST(voter_reg_address AS VARCHAR(100)) AS voter_reg_address
+        , CAST(mailing_address AS VARCHAR(100)) AS mailing_address
+        , CAST(dest_code AS VARCHAR(30)) AS dest_code
+    FROM mail_production_2022.vbm_2021_fall_mailer_export_x1_wave3
+    ),
+
+fall_exp_x2_1 AS (
+    SELECT CAST(imb_serial AS VARCHAR(10)) AS imb_serial
+        , CAST(unsubid AS VARCHAR(20)) AS unsubid
+        , CAST(creative_code AS VARCHAR(15)) AS creative_code
+        , CAST(first_name AS VARCHAR(50)) AS first_name
+        , CAST(last_name AS VARCHAR(50)) AS last_name
+        , CAST(middle_name AS VARCHAR(50)) AS middle_name
+        , CAST(middle_initial AS VARCHAR(1)) AS middle_initial
+        , CAST(name_suffix AS VARCHAR(15)) AS name_suffix
+        , CAST(voter_reg_address AS VARCHAR(100)) AS voter_reg_address
+        , CAST(mailing_address AS VARCHAR(100)) AS mailing_address
+        , CAST(dest_code AS VARCHAR(30)) AS dest_code
+    FROM mail_production_2022.vbm_2021_fall_mailer_export_x2_wave1
+    ),
+    
+    fall_exp_x2_2 AS (
+    SELECT CAST(imb_serial AS VARCHAR(10)) AS imb_serial
+        , CAST(unsubid AS VARCHAR(20)) AS unsubid
+        , CAST(creative_code AS VARCHAR(15)) AS creative_code
+        , CAST(first_name AS VARCHAR(50)) AS first_name
+        , CAST(last_name AS VARCHAR(50)) AS last_name
+        , CAST(middle_name AS VARCHAR(50)) AS middle_name
+        , CAST(middle_initial AS VARCHAR(1)) AS middle_initial
+        , CAST(name_suffix AS VARCHAR(15)) AS name_suffix
+        , CAST(voter_reg_address AS VARCHAR(100)) AS voter_reg_address
+        , CAST(mailing_address AS VARCHAR(100)) AS mailing_address
+        , CAST(dest_code AS VARCHAR(30)) AS dest_code
+    FROM mail_production_2022.vbm_2021_fall_mailer_export_x2_wave2
+    ),
+
+   fall_exp_x2_3 AS (
+    SELECT CAST(imb_serial AS VARCHAR(10)) AS imb_serial
+        , CAST(unsubid AS VARCHAR(20)) AS unsubid
+        , CAST(creative_code AS VARCHAR(15)) AS creative_code
+        , CAST(first_name AS VARCHAR(50)) AS first_name
+        , CAST(last_name AS VARCHAR(50)) AS last_name
+        , CAST(middle_name AS VARCHAR(50)) AS middle_name
+        , CAST(middle_initial AS VARCHAR(1)) AS middle_initial
+        , CAST(name_suffix AS VARCHAR(15)) AS name_suffix
+        , CAST(voter_reg_address AS VARCHAR(100)) AS voter_reg_address
+        , CAST(mailing_address AS VARCHAR(100)) AS mailing_address
+        , CAST(dest_code AS VARCHAR(30)) AS dest_code
+    FROM mail_production_2022.vbm_2021_fall_mailer_export_x2_wave3
+    ),
+    
+    -- concatenate all program data together and de-duplicate by imb_serial_number
+    
+
+ 
+    fall_exp1 AS (
+    SELECT * FROM fall_exp_x1_1
+    UNION ALL
+    SELECT * FROM fall_exp_x1_2
+    UNION ALL
+    SELECT * FROM fall_exp_x1_3
+    UNION ALL
+    SELECT * FROM fall_exp_x2_1
+    UNION ALL
+    SELECT * FROM fall_exp_x2_2
+    UNION ALL
+    SELECT * FROM fall_exp_x2_3
+    ),
+    
+    fall_exp2 AS (
+    SELECT *
+    FROM (
+      SELECT *, row_number() 
+      OVER (PARTITION BY imb_serial order by last_name) as row_number
+      FROM fall_exp1
+      ) 
+    AS rows
+    WHERE row_number = 1),
+    
+    -- define final pre-merge table versions
+
+fall_exp AS (
+    SELECT CAST(imb_serial AS VARCHAR(10)) AS imb_serial
+        , CAST(unsubid AS VARCHAR(20)) AS unsubid
+        , CAST(creative_code AS VARCHAR(15)) AS creative_code
+        , CAST(first_name AS VARCHAR(50)) AS first_name
+        , CAST(last_name AS VARCHAR(50)) AS last_name
+        , CAST(middle_name AS VARCHAR(50)) AS middle_name
+        , CAST(middle_initial AS VARCHAR(1)) AS middle_initial
+        , CAST(name_suffix AS VARCHAR(15)) AS name_suffix
+        , CAST(voter_reg_address AS VARCHAR(100)) AS voter_reg_address
+        , CAST(mailing_address AS VARCHAR(100)) AS mailing_address
+        , CAST(dest_code AS VARCHAR(30)) AS dest_code
+    FROM fall_exp2
+    ),
+    
+    recent_update AS(
+    SELECT CAST(imb_serial_number AS VARCHAR(10)) AS imb_serial_number
+        , CAST(imb_tracking_code AS VARCHAR(20)) AS imb_tracking_code
+        , CASE WHEN response_type = '93' THEN '1' ELSE '0' END AS inbound 
+        , CASE WHEN response_type = '00' THEN '1' ELSE '0' END AS outbound
+        , CAST(scan_datetime AS TIMESTAMP) AS scan_datetime
+        , CAST(scan_date AS DATE) AS scan_date
+        , CAST(scan_event_code AS INTEGER) AS scan_event_code
+        , CAST(scan_facility_state AS VARCHAR(3)) AS scan_facility_state
+        , CAST(mail_phase AS VARCHAR(50)) AS mail_phase
+    FROM recent_update1
+    ),
+    
+    -- join mailer export and USPS responses on imb_serial_number
+    
+    person_update AS (
+    SELECT * FROM recent_update d1
+    INNER JOIN  fall_exp d2
+    ON d1.imb_serial_number = d2.imb_serial
+    )
+
+    SELECT * 
+    FROM person_update
+    
+    );
